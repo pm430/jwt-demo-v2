@@ -29,18 +29,34 @@ public class JwtUtil {
     }
 
     /**
-     * JWT 토큰 생성
-     *
-     * @param authentication 인증 정보
-     * @return 생성된 JWT 토큰
+     * API 키 스타일의 장기 JWT 토큰 생성
      */
-    public String generateToken(Authentication authentication) {
+    public String generateApiToken(Authentication authentication) {
         return Jwts.builder()
-                .setSubject(authentication.getName())  // 사용자 이름을 토큰의 제목으로 설정
-                .setIssuedAt(new Date())  // 토큰 발행 시간 설정
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))  // 30분 후 만료
-                .signWith(key)  // 생성된 키로 토큰 서명
-                .compact();  // 토큰 생성 및 직렬화
+                .setSubject(authentication.getName())
+                .setIssuedAt(new Date())
+                // 예: 10년 유효기간
+                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 365 * 10))
+                // API 용도임을 명시
+                .claim("type", "API")
+                // 계약 업체명 등 추가 정보를 넣을 수 있음
+                .claim("company", "CompanyA")
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * 일반 사용자용 단기 토큰 생성
+     */
+    public String generateUserToken(Authentication authentication) {
+        return Jwts.builder()
+                .setSubject(authentication.getName())
+                .setIssuedAt(new Date())
+                // 30분 유효기간
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))
+                .claim("type", "USER")
+                .signWith(key)
+                .compact();
     }
 
     /**

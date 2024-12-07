@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,6 +22,7 @@ import java.util.List;
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    // JWT 유틸리티 클래스 의존성 주입
     private final JwtUtil jwtUtil;
 
     public JwtAuthenticationFilter(JwtUtil jwtUtil) {
@@ -49,18 +51,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 토큰에서 사용자 이름 추출
             String username = jwtUtil.getUsernameFromToken(token);
 
+            // 사용자 권한 설정
+            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+            // 사용자 이름이 'admin'인 경우 관리자 권한 부여
+            if ("admin".equals(username)) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            }
+            // 기본 사용자 권한 부여
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
             // 인증 정보 생성
             Authentication authentication =
                     new UsernamePasswordAuthenticationToken(
                             username,  // 토큰에서 추출한 사용자 이름 사용
                             null,      // 자격증명(비밀번호 등)은 필요없음
-                            List.of(new SimpleGrantedAuthority("ROLE_USER"))  // 사용자 권한 설정
+                            authorities  // 설정된 권한 목록
                     );
 
             // SecurityContext에 인증 정보 저장
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } else {
+            // 유효하지 않은 토큰인 경우 401 Unauthorized 응답
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid Token");
         }
     }

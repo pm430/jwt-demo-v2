@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,12 +18,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 /**
  * Spring Security 설정 클래스
  * JWT 기반의 인증을 위한 보안 설정을 정의합니다.
  */
 @Configuration  // 스프링 설정 클래스임을 명시
 @EnableWebSecurity  // Spring Security 활성화
+@EnableMethodSecurity  // @PreAuthorize 등 메서드 수준 보안 활성화
 public class SecurityConfig {
     // JWT 인증 필터 의존성 주입
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -35,6 +38,10 @@ public class SecurityConfig {
     /**
      * Spring Security Filter Chain 설정
      * 보안 필터 체인을 구성하고 각종 보안 설정을 정의합니다.
+     *
+     * @param http HttpSecurity 객체
+     * @return 구성된 SecurityFilterChain
+     * @throws Exception 보안 설정 중 발생할 수 있는 예외
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -51,6 +58,8 @@ public class SecurityConfig {
                         auth
                                 // 토큰 발급 API는 인증 없이 접근 가능
                                 .requestMatchers("/api/token").permitAll()
+                                // API 키 발급은 관리자 권한이 필요
+                                .requestMatchers("/api/apikey").hasRole("ADMIN")
                                 // 나머지 모든 요청은 인증 필요
                                 .anyRequest().authenticated()
                 )
@@ -66,6 +75,7 @@ public class SecurityConfig {
 
     /**
      * 인증 관리자 빈 설정
+     * 인증을 처리할 AuthenticationManager를 설정합니다.
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
@@ -74,6 +84,7 @@ public class SecurityConfig {
 
     /**
      * 테스트용 인메모리 사용자 정보 서비스 설정
+     * 실제 운영 환경에서는 데이터베이스 기반의 사용자 정보를 사용해야 합니다.
      */
     @Bean
     public UserDetailsService userDetailsService() {
@@ -88,7 +99,7 @@ public class SecurityConfig {
         UserDetails user2 = User.builder()
                 .username("admin")  // 관리자명 설정
                 .password(passwordEncoder().encode("admin123"))  // 비밀번호 암호화하여 설정
-                .roles("ADMIN")  // 관리자 권한 설정
+                .roles("ADMIN", "USER")  // 관리자 권한 설정 (USER 권한도 포함)
                 .build();
 
         // 인메모리 사용자 정보 서비스 생성

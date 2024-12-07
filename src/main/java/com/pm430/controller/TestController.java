@@ -2,10 +2,12 @@ package com.pm430.controller;
 
 import com.pm430.util.JwtUtil;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -42,11 +44,21 @@ public class TestController {
                     new UsernamePasswordAuthenticationToken(username, password)  // 인증 토큰 생성
             );
             // 인증 성공 시 JWT 토큰 발급
-            return jwtUtil.generateToken(authentication);
+            return jwtUtil.generateUserToken(authentication);
         } catch (BadCredentialsException e) {
             // 인증 실패 시 401 Unauthorized 응답
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
+    }
+
+    /**
+     * API 키 스타일의 장기 토큰 발급 (관리자만 가능)
+     */
+    @PostMapping("/apikey")
+    @PreAuthorize("hasRole('ADMIN')")  // 관리자만 API 키 발급 가능
+    public String generateApiKey(@RequestParam String companyName) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return jwtUtil.generateApiToken(authentication);
     }
 
     /**
